@@ -10,7 +10,11 @@ from google.protobuf.message import DecodeError
 
 from meshtastic.protobuf.mqtt_pb2 import ServiceEnvelope
 
-KEY = base64.b64decode("1PG7OiApB1nwvP+rz05pAQ==")
+from meshview import config
+
+CONFIG = config.CONFIG
+
+KEY = base64.b64decode(CONFIG["mqtt"]["encryption_key"])
 
 logging.basicConfig(
     level=logging.INFO,
