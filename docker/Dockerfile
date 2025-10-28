@@ -1,28 +1,36 @@
-FROM python:3.12-slim
+FROM ubuntu:latest
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y wget git graphviz && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Miniconda
+ENV PATH="/opt/conda/bin:$PATH"
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh -O /miniconda.sh && \
+    bash /miniconda.sh -b -p /opt/conda && \
+    rm /miniconda.sh
 
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies (graphviz required, git for cloning)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends git graphviz && \
-    rm -rf /var/lib/apt/lists/*
+# Be sure to have done git submodule update --init --recursive
+COPY . ./
 
-# Clone the repo with submodules
-RUN git clone --recurse-submodules https://github.com/pablorevilla-meshtastic/meshview.git /app
+# Create conda environment
+RUN conda create -n meshview python=3.11 -y
 
-# Create virtual environment
-RUN python -m venv /app/env
+# Activate environment and install dependencies
+RUN /opt/conda/envs/meshview/bin/pip install -r /app/requirements.txt
 
-# Upgrade pip and install requirements in venv
-RUN /app/env/bin/pip install --no-cache-dir --upgrade pip && \
-    /app/env/bin/pip install --no-cache-dir -r /app/requirements.txt
-
-# Copy sample config
+#place sample config in place
 RUN cp /app/sample.config.ini /app/config.ini
 
-# Expose port
-EXPOSE 8081
+#change default to 8082
+RUN sed -ie 's/port = 8081/port = 8082/g' /app/config.ini
 
-# Run the app via venv
-CMD ["/app/env/bin/python", "/app/mvrun.py"]
+# Expose the web server port
+EXPOSE 8082
+
+# Start the application using the conda environment
+CMD ["/app/start.sh"]
